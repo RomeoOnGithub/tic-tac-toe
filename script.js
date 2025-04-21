@@ -1,4 +1,4 @@
-console.log("Welcome to Tic-Tac-Toe, best of 3!\nTo target a cell, apply a set of numbers (row, column)\nTo 'game.playRound()'. Example: game.playRound(1,1).")
+console.log("Welcome to Tic-Tac-Toe, best of 3!\nTo play, target a cell by applying a set of numbers (row, column) in the parentheses of 'game.playRound()'.\nExample: game.playRound(1,1) = middle")
 
 function gameboard() {
     gameGrid = [];
@@ -186,8 +186,8 @@ function gameController(playerOneName = "Player One", playerTwoName = "Player Tw
                 return;
         };
     }
-        switchPlayerTurn();
         printNewRound();
+        switchPlayerTurn();
     };
 
     const resetGame = () => {
@@ -210,4 +210,5 @@ function gameController(playerOneName = "Player One", playerTwoName = "Player Tw
     return {playRound, getActivePlayer, resetGame, newRound};
 }
 
-const game = gameController();
+const game = gameController(); 
+
