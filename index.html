@@ -7,6 +7,53 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="container">
+        <div id="column1">
+            <div class="theme"></div>
+            <div id="rounds-to-win">'x'</div>
+            <div id="player1">
+                <div class="players">
+                    <div class="player1" class="avatar">'p1 picture'</div>
+                    <div class="player1" class="score">'p1 score'</div>
+                    
+                    <div class="player2" class="score">'p2 score'</div>
+                    <div class="player2" class="avatar">'p2 picture'</div>
+                </div>
+            </div>
+        </div>
+        <div id="column2">
+            <div class="game-messages">
+                <div id="introduction">Tic Tac Toe</div>
+                <div id="state">Let's Play!</div>
+                </div>
+            <div class="turn"> <!-- the nested items might not appear because they're overwritten in JS... -->
+                <div class="player1" class="value">'p1 value'</div>
+                <div class="player2" class="value">'p2 value'</div>
+            </div>
+            
+            <div class="grid"></div>
+        </div>
+        <div id="column3">
+            <div class="menu">
+                <div class="game-info">
+                    <div id="context">
+                        Welcome to Tic-Tac-Toe
+                    </div>
+                </div>
+                <div id="game-options">
+                    <form action="">
+                        <input type="checkbox" name="" id=""> Player v Player
+                        <input type="checkbox" name="" id=""> <s>Player v Computer</s>
+
+                        <input type="checkbox" name="" id=""> <s>Randomise starting player</s>
+                    </form>
+                </div>
+            </div>
+            <div class="game-buttons">
+                <button>Start Game</button>
+            </div>
+        </div>
+    </div>
     
     <script src="script.js"></script>
 </body>

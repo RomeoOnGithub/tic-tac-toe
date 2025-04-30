@@ -1,7 +1,5 @@
-console.log("Welcome to Tic-Tac-Toe, best of 3!\nTo play, target a cell by applying a set of numbers (row, column) in the parentheses of 'game.playRound()'.\nExample: game.playRound(1,1) = middle")
-
 function gameboard() {
-    gameGrid = [];
+    let gameGrid = [];
 
     let gridRows = 3;
     let gridColumns = 3;
@@ -14,7 +12,7 @@ function gameboard() {
                 gameGrid[r].push(cellValue());
             };
         };  
-    };
+    }; 
     generateGameGrid();
 
     const getGameGrid = () => gameGrid;
@@ -34,9 +32,7 @@ function gameboard() {
         console.table(cellsOfGameGrid); 
     }
 
-    const resetGameGrid = () => {
-        generateGameGrid();
-    };
+    const resetGameGrid = () => {generateGameGrid();}; // run another function (don't need a return value so )
 
     return {getGameGrid, setValue, printGrid, resetGameGrid};
 };
@@ -53,33 +49,35 @@ function cellValue() {
     return {setValue, getValue};
 }
 
-function gameController(playerOneName = "Player One", playerTwoName = "Player Two") {
-    const grid = gameboard();
-    const gameGrid = grid.getGameGrid();
-
+function playerManager(playerOneName = "Player One", playerTwoName = "Player Two") {
     const players = [
         {name: playerOneName, value: 1, wins: 0},
         {name: playerTwoName, value: 2, wins: 0}
     ];
+    
+    const getName = playerIndex => players[playerIndex].name;
+    const getValue = playerIndex => players[playerIndex].value;
+    const getWins = playerIndex => players[playerIndex].wins;
+    const incrementWinsTally = playerIndex => players[playerIndex].wins++;
+
     const resetPlayersData = () => {
-     players[0].name = playerOneName;
-     players[1].name = playerTwoName;
-     players[0].wins = 0;
-     players[1].wins = 0;
+        players[0].name = playerOneName;
+        players[1].name = playerTwoName;
+        players[0].wins = 0;
+        players[1].wins = 0;
     };
 
-    let activePlayer = players[0];
-
-    const switchPlayerTurn = () => {
-        activePlayer = activePlayer === players[0] ? players[1] : players[0];
-        console.log(`${getActivePlayer().name}'s turn.`)
+    let activePlayerIndex = 0; // '0' = player1 | '1' = player2
+    const switchTurn = () => {
+        activePlayerIndex = activePlayerIndex === 0 ? 1 : 0;
+        console.log(getName(activePlayerIndex) + "'s turn.")
     };
-    const getActivePlayer = () => activePlayer;
+    const getActivePlayer = () => activePlayerIndex;
 
-    function printNewRound() {
-        grid.printGrid();
-    }
+    return {getName, getValue, getWins, incrementWinsTally, getActivePlayer, switchTurn, resetPlayersData};
+}
 
+function gameRules(gameGrid, player) {
     const conditionsRoundScenarios = () => {
         const winScenarios = (playerValue) => {
             function diagonalWinConditions() { //2 diagonal win scenarios
@@ -107,10 +105,10 @@ function gameController(playerOneName = "Player One", playerTwoName = "Player Tw
             return diagonalWinConditions() || horizontalWinConditions() || verticalWinConditions(); //see if any returned true (someone won the game)
         };
 
-        const player1Won = winScenarios(players[0].value);
-        const player2Won = winScenarios(players[1].value);
+        const player1Won = winScenarios(player.getValue(0));
+        const player2Won = winScenarios(player.getValue(1));
 
-        const isGridFull = () => {
+        const isGridFull = () => { //check if there are absolutely no cells containing the value '0'
             for (let r = 0; r < gameGrid.length; r++) {
                 for (let c = 0; c < gameGrid[r].length; c++) {
                     if (gameGrid[r][c].getValue() === 0) {
@@ -122,7 +120,6 @@ function gameController(playerOneName = "Player One", playerTwoName = "Player Tw
         }
 
         const drawScenarios = () => {
-            //check the obvious (no more valid moves)
             if (isGridFull()) {
                 return !player1Won && !player2Won;
             }
@@ -135,80 +132,155 @@ function gameController(playerOneName = "Player One", playerTwoName = "Player Tw
         };
     };
 
-    const scenarios = conditionsRoundScenarios(); //get access to win and draw scenarios
+    const scenarios = conditionsRoundScenarios()
 
     const checkRoundScenarios = () => {
-        if (scenarios.checkWin(getActivePlayer().value)) { //Round over
-            getActivePlayer().wins++;
-            if (getActivePlayer().wins === 2) { //Game over
-                return;
+        const activePlayerIndex = player.getActivePlayer(); //access the player-index to target the correct player's dataset (not at the module level due to 'minimal knowledge/law of demeter' principle)
+        const playerSymbol = player.getValue(activePlayerIndex); // (not in module-scope due to 'minimal knowledge/Law of Demeter')
+
+        if (scenarios.checkWin(playerSymbol)) { // Round over
+            player.incrementWinsTally(activePlayerIndex); // using the 'modifier method'
+            if (player.getWins(activePlayerIndex) === 2) { // Game over
+                return "game over";
             };
             return "win";
         }
-        if (scenarios.checkDraw()) { //Round over
+        if (scenarios.checkDraw()) { // Round over
             console.log("Game over! Draw!")
             return "draw";
         }
         return "continue";
     }; 
 
-    function playRound(row, column) {  
-        const moveValid = grid.setValue(row, column, getActivePlayer().value); 
+    return {conditionsRoundScenarios, checkRoundScenarios}
+}
+
+function gameController() {
+
+    let freezeGrid = false;
+    const grid = gameboard(); //gain access to the module holding grid methods
+        const gameGrid = grid.getGameGrid(); //access the existing instance/grid/gameboard - so that manipulations apply to the correct data as opposed to generating a new instance (also used for dependency injection for 'gameRules')
+    const player = playerManager(); //gain access to the module holding player methods (also used for dependency injection for 'gameRules')
+    
+    function printNewRound() {
+        grid.printGrid();
+    }
+
+    function playRound(row, column) { 
+        if (freezeGrid) {
+            console.log("Grid is frozen!\nStart a new round or reset the game.")
+            return
+        }
+        
+        const activePlayerIndex = player.getActivePlayer(); //access the player-index to target the correct player's dataset (not at the module level due to 'minimal knowledge/law of demeter' principle)
+        const playerSymbol = player.getValue(activePlayerIndex); // (not in module-scope due to 'minimal knowledge/Law of Demeter')
+
+        const moveValid = grid.setValue(row, column, playerSymbol); //this feels like bypassing the accessor-properties - I'm accessing the 'players' array directly here no?
         if (!moveValid) {
             console.log("Try Again!");
             return;
         }
-        //console.log(`VALID MOVE: ${getActivePlayer().name} claimed the cell from row-${row}/column-${column} and turned it to ${getActivePlayer().value}!`);
 
-        //manageRoundScenarios
-        const getRoundStatus = checkRoundScenarios();
-        if (getRoundStatus === "win" || getRoundStatus === "draw" || getActivePlayer().wins === 2) { //Round over
-            printNewRound();
-            
-
-            if (getActivePlayer().wins === 2) { //Game over
-                console.log("Game concluded.");
-                console.log(`${getActivePlayer().name} won two rounds! That's game over!`)
-                console.log("To reset: game.resetGame()")
-                return;
-            };
-
-            console.log("Round concluded.");
-            if (getRoundStatus === "win") { //Round over
-                console.log(`${getActivePlayer().name} won the round!\nThey have now won ${getActivePlayer().wins} round(s).`)
-                console.log("To continue: game.newRound()\nTo reset: game.resetGame()")
-                return;
-            };
-
-            if (getRoundStatus === "draw") { //Round over
-                console.log("Draw!\nNo player get's a point.")
-                console.log("To continue: game.newRound()\nTo reset: game.resetGame()")
-                return;
-        };
-    }
+        //↓ handle checks of the grid with the rules 
+        const rules = gameRules(gameGrid, player);
+            const roundStatus = rules.checkRoundScenarios();
         printNewRound();
-        switchPlayerTurn();
+
+        if (roundStatus === "win" || roundStatus === "draw" || roundStatus === "game over") {
+            freezeGrid = true;
+        }
+        if (roundStatus === "game over") { // Game over
+            console.log("Game concluded.")
+            console.log(`${player.getName(activePlayerIndex)} won two rounds! Finito!`)
+            console.log("To reset: game.resetGame()")
+            return;
+        }
+        if (roundStatus === "win") { // Round over
+            console.log("Round concluded.");
+            console.log(`${player.getName(activePlayerIndex)} won the round!\nThey have now won ${player.getWins(activePlayerIndex)} round(s).`);
+            console.log("To continue: game.newRound()\nTo reset: game.resetGame()");
+            return;
+        };
+        if (roundStatus === "draw") { // Round over
+            console.log("Round concluded.");
+            console.log("Draw!\nNo player get's a point.")
+            console.log("To continue: game.newRound()\nTo reset: game.resetGame()")
+            return;
+        };
+    
+
+        player.switchTurn();
     };
 
     const resetGame = () => {
         grid.resetGameGrid();
-        resetPlayersData();
-        activePlayer = players[0];
+        player.resetPlayersData();
         console.log("Game has been reset!");
         printNewRound();
     };
 
     const newRound = () => {
         grid.resetGameGrid();
-        activePlayer = players[0];
-        console.log("Game has been reset!" );
+        console.log("New round started!");
         printNewRound();
     };
 
     printNewRound();
 
-    return {playRound, getActivePlayer, resetGame, newRound};
+    return {grid, player, playRound, resetGame, newRound};
 }
 
-const game = gameController(); 
+function screenController() {
+    // initialise - DOM elements
+    const gridDiv = document.querySelector('.grid'); 
+        const game = gameController(); // initialise - get the correct instance (get the data that's being manipulated rather than creating a new data-set)
+        const grid = game.grid; 
+        const gameGrid = grid.getGameGrid();
+    const playerTurnDiv = document.querySelector('.turn')
+        const player = playerManager();
+
+    const updateScreen = () => {
+        gridDiv.textContent = ""; //don't keep snapshots of each move (if I want to keep the snapshot of a concluded-round, having a system with this seems like the move)
+
+        const activePlayerIndex = player.getActivePlayer(); // initialise (not in module-scope due to 'minimal knowledge/Law of Demeter')
+        playerTurnDiv.textContent = `${player.getName(activePlayerIndex)}'s turn...`;
+    
+        // generate 3x3 grid & make cells responsive to clicks 
+        gameGrid.forEach((row, rowIndex) => {
+            // initialise
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('row');
+
+            row.forEach((cell, columnIndex) => {
+                // initialise 
+                const cellButton = document.createElement('button');
+                    cellButton.classList.add('cell');
+
+                // unique cell ID
+                cellButton.dataset.row = rowIndex;  
+                cellButton.dataset.column = columnIndex;
+
+                // display player.value's as 'symbols'
+                const cellValue = cell.getValue(); 
+
+                if (cellValue === 1) {cellButton.textContent = 'X';}
+                    else if (cellValue === 2) {cellButton.textContent = 'O';}
+                    else {cellButton.textContent = '';}
+
+                // handle events
+                cellButton.addEventListener('click', () => {
+                    game.playRound(rowIndex, columnIndex);
+                    updateScreen();
+                });
+            rowDiv.appendChild(cellButton);
+            
+            });
+        gridDiv.appendChild(rowDiv);
+        
+        });
+    };
+    
+    updateScreen();
+}
+screenController();
 
